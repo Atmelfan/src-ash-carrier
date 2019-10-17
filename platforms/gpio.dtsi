@@ -1,0 +1,38 @@
+
+/*GPIO output type*/
+#define DTIO_OUTPUT_PP      0
+#define DTIO_OUTPUT_OD      1
+
+/*GPIO pullups*/
+#define DTIO_PULL_NONE      0
+#define DTIO_PULL_UP        1
+#define DTIO_PULL_DOWN      2
+
+/*GPIO modes*/
+#define DTIO_MODE_INPUT     0
+#define DTIO_MODE_OUTPUT    1
+#define DTIO_MODE_ANALOG    2
+#define DTIO_MODE_AF        3
+
+/*GPIO alternative functions*/
+#define DTIO_LOW            0
+#define DTIO_HIGH           1
+#define DTIO_AF0            0
+#define DTIO_AF1            1
+#define DTIO_AF2            2
+#define DTIO_AF3            3
+#define DTIO_AF4            4
+#define DTIO_AF5            5
+#define DTIO_AF6            6
+#define DTIO_AF7            7
+#define DTIO_AF8            8
+#define DTIO_AF9            9
+#define DTIO_AF10           10
+#define DTIO_AF11           11
+#define DTIO_AF12           12
+#define DTIO_AF13           13
+#define DTIO_AF14           14
+#define DTIO_AF15           15
+#define DTIO_AF(n)          (n)
+
+

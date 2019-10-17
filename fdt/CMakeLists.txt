@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.7)
+
+set(FDT_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
+file(GLOB FDT_SOURCE *.c)
+set(FDT_SOURCE ${FDT_SOURCE} PARENT_SCOPE)
+add_library(fdt ${FDT_SOURCE})
+
+
+
+

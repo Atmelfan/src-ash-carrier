@@ -1,0 +1,448 @@
+/dts-v1/;
+
+#include "platforms/gpio.dtsi"
+#include "gait/gait_octa_home.dtsi"
+
+/ {
+    /* Boot message displayed on LCD */
+    bootmsg = "GPA-Robotics","gpa-robotics.com";
+    #address-cells = <1>;
+    #size-cells = <0>;
+
+    /* The 'chosen' node is used to communicate between firmware and board configuration*/
+    chosen {
+
+        /* Standby body translation */
+        standby-translation = < 0 0 50 >;
+    };
+
+    platform {
+        compatible = "stm,stm32f4";
+
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        porta: gpio@40020000 {
+            compatible = "stm32f4,port";
+
+            /* Address of GPIOA */
+            reg = < 0x40020000 >;
+
+            /* IO config */
+            io = <
+                //3 DTIO_MODE_OUTPUT DTIO_OUTPUT_PP DTIO_PULL_NONE DTIO_HIGH //PA3 OUT => NVM_TX
+                /* JETSON BATTOC */
+                8 DTIO_MODE_OUTPUT DTIO_OUTPUT_PP DTIO_PULL_NONE DTIO_HIGH //PA8 OUT => NVM_BATTOC
+            >;
+        };
+
+        portb: gpio@40020400 {
+            compatible = "stm32f4,port";
+
+            /* Address of GPIOA */
+            reg = < 0x40020400 >;
+
+            /* IO config */
+            io = <
+                /* IO pin, mode, output type, pull, af(if applicable)*/
+                /* I2C2 SDA & SCL */
+                10 DTIO_MODE_AF DTIO_OUTPUT_OD DTIO_PULL_NONE DTIO_AF4 //PB10 AF4 => I2C2 SCL
+                11 DTIO_MODE_AF DTIO_OUTPUT_OD DTIO_PULL_NONE DTIO_AF4 //PB11 AF4 => I2C2 SDA
+
+                /* TIM4 CH2-4*/
+                7 DTIO_MODE_AF DTIO_OUTPUT_PP DTIO_PULL_NONE DTIO_AF1 //PB7 AF1 => TIM4 CH2
+                8 DTIO_MODE_AF DTIO_OUTPUT_PP DTIO_PULL_NONE DTIO_AF1 //PB8 AF1 => TIM4 CH3
+                9 DTIO_MODE_AF DTIO_OUTPUT_PP DTIO_PULL_NONE DTIO_AF1 //PB9 AF1 => TIM4 CH4
+            >;
+        };
+
+        i2c2: i2c@40005800 {
+            compatible = "stm32f4,i2c-ctr";
+
+            /* Address of I2C2*/
+            reg = < 0x40005800 >;
+
+            /* Own I2C address */
+            addr = < 0x00 >;
+
+            /* Speed */
+            speed = < 100000 >;
+
+            /* Sub devices */
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            /* Right */
+            pca9685_1: pwm@8c {
+                compatible = "nxp,pca9685";
+                reg = < 0x8c >;
+
+                /* 50 Hz update frequency*/
+                freq = < 50 >;
+
+                /* Default to 307/4096 duty @ 50Hz ~ 1.5ms pulse */
+                all = < 0 0 >;
+            };
+
+            /* Left */
+            pca9685_2: pwm@8e {
+
+                compatible = "nxp,pca9685";
+
+                /* I2C address*/
+                reg = < 0x8e >;
+
+                /* 50 Hz update frequency*/
+                freq = < 50 >;
+
+                /* Default to 307/4096 duty @ 50Hz ~ 1.5ms pulse */
+                all = < 0 0 >;
+            };
+
+            lm3549: lm3549@6c {
+                compatible = "ti,lm3549";
+
+                /* I2C address */
+                reg = < 0x6c >;
+
+            };
+
+        };
+
+        uart@00000000 {
+            reg = < 0x00000000 >;
+        };
+
+        /* SYSTICK */
+        systick {
+            compatible = "stm32f4,systick";
+            freq = < 1000 >;
+        };
+
+    };
+
+    legs {
+
+        /*Number of legs*/
+        #num-legs = < 8 >;
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        /* 90 degrees pulse width in us */
+        servo-scale = < 1024 >;
+
+
+        leg@0 {
+            /* Index of leg */
+            reg = < 0 >;
+
+            /* Home coordinates (leg local-space) */
+            home = < (-175000) 230000 0 >;
+
+            /* Leg offset from center */
+            offset = < 0 0 0 >;
+
+            /* Matrix used to transform to leg local-space, scaled by 1000 */
+            transform = <
+                (-1000) 0       0       (-75000)
+                0       1000    0       (-180000)
+                0       0       1000    (-50000)
+                0       0       0       1000
+            >;
+
+            /* IK info */
+            inverse-kinematics {
+                /* IK driver */
+                #dof = < 3 >;
+
+                /* All servos are inverted on this leg*/
+                invert; //= < 1 1 1 >;
+
+                /* Length in mm*10 */
+                length = < 270 700 1300 >;
+
+                /* Servo indices and offsets*/
+                servos = < &pca9685_2
+                    7 (60)
+                    8 (-525)
+                    9 750
+                >;
+
+                //test = < 0 (-900) 900 >;
+
+            };
+        };
+
+        leg@1 {
+            /* Index of leg */
+            reg = < 1 >;
+
+            /* Home coordinates (leg local-space) */
+            home = < 175000 230000 0 >;
+
+            /* Leg offset from center */
+            offset = < 0 0 0 >;
+
+            /* Matrix used to transform to leg local-space, scaled by 1000 */
+            transform = <
+                1000    0       0       (-75000)
+                0       1000    0       (-180000)
+                0       0       1000    (-50000)
+                0       0       0       1000
+            >;
+
+            /* IK info */
+            inverse-kinematics {
+                /* IK driver */
+                #dof = < 3 >;
+
+                /* Length in mm*10 */
+                length = < 270 700 1300 >;
+
+                /* Servo indices and offsets*/
+                servos = < &pca9685_1
+                    12 0
+                    11 (-400)
+                    10 925
+                >;
+                //test = < 0 (-900) 900 >;
+
+            };
+
+
+        };
+
+        leg@2 {
+            /* Index of leg */
+            reg = < 2 >;
+
+            /* Home coordinates (leg local-space) */
+            home = < (-175000) 60000 0 >;
+
+            /* Leg offset from center */
+            offset = < 0 0 0 >;
+
+            /* Matrix used to transform to leg local-space, scaled by 1000 */
+            transform = <
+                (-1000) 0       0       (-75000)
+                0       1000    0       (-60000)
+                0       0       1000    (-50000)
+                0       0       0       1000
+            >;
+
+            /* IK info */
+            inverse-kinematics {
+                /* IK driver */
+                #dof = < 3 >;
+
+                /* All servos are inverted on this leg*/
+                invert; //= < 1 1 1 >;
+
+                /* Length in mm*10 */
+                length = < 270 700 1300 >;
+
+                /* Servo indices and offsets*/
+                servos = < &pca9685_2
+                    4 110
+                    5 (-540)
+                    6 1000
+                >;
+                //test = < 0 (-900) 900 >;
+
+            };
+        };
+
+        leg@3 {
+            /* Index of leg */
+            reg = < 3 >;
+
+            /* Home coordinates (leg local-space) */
+            home = < 175000 60000 0 >;
+
+            /* Leg offset from center */
+            offset = < 0 0 0 >;
+
+            /* Matrix used to transform to leg local-space, scaled by 1000 */
+            transform = <
+                1000    0       0       (-75000)
+                0       1000    0       (-60000)
+                0       0       1000    (-50000)
+                0       0       0       1000
+            >;
+
+            /* IK info */
+            inverse-kinematics {
+                /* IK driver */
+                #dof = < 3 >;
+
+                /* Length in mm*10 */
+                length = < 270 700 1300 >;
+
+                /* Servo indices and offsets*/
+                servos = < &pca9685_1
+                    15 (-50)
+                    14 (-440)
+                    13 880
+                >;
+                //test = < 0 (-900) 900 >;
+
+            };
+        };
+
+        leg@4 {
+            /* Index of leg */
+            reg = < 4 >;
+
+            /* Home coordinates (leg local-space) */
+            home = < (-175000) (-60000) 0 >;
+
+            /* Leg offset from center */
+            offset = < 0 0 0 >;
+
+            /* Matrix used to transform to leg local-space, scaled by 1000 */
+            transform = <
+                (-1000) 0       0       (-75000)
+                0       (-1000) 0       (-60000)
+                0       0       1000    (-50000)
+                0       0       0       1000
+            >;
+
+            /* IK info */
+            inverse-kinematics {
+                /* IK driver */
+                #dof = < 3 >;
+
+                /* Length in mm*10 */
+                length = < 270 700 1300 >;
+
+                /* Servo indices and offsets*/
+                servos = < &pca9685_2
+                    13 (-140)
+                    14 (-480)
+                    15 850
+                >;
+                //test = < 0 (-900) 900 >;
+
+            };
+        };
+
+        leg@5 {
+            /* Index of leg */
+            reg = < 5 >;
+
+            /* Home coordinates (leg local-space) */
+            home = < 175000 (-60000) 0 >;
+
+            /* Leg offset from center */
+            offset = < 0 0 0 >;
+
+            /* Matrix used to transform to leg local-space, scaled by 1000 */
+            transform = <
+                1000    0       0       (-75000)
+                0       (-1000) 0       (-60000)
+                0       0       1000    (-50000)
+                0       0       0       1000
+            >;
+
+            /* IK info */
+            inverse-kinematics {
+                /* IK driver */
+                #dof = < 3 >;
+
+                /* Length in mm*10 */
+                length = < 270 700 1300 >;
+
+                invert;
+
+                /* Servo indices and offsets*/
+                servos = < &pca9685_1
+                    6 90
+                    5 (-475)
+                    4 900
+                >;
+                //test = < 0 (-900) 900 >;
+
+            };
+        };
+
+        leg@6 {
+            /* Index of leg */
+            reg = < 6 >;
+
+            /* Home coordinates (leg local-space) */
+            home = < (-175000) (-230000) 0 >;
+
+            /* Leg offset from center */
+            offset = < 0 0 0 >;
+
+            /* Matrix used to transform to leg local-space, scaled by 1000 */
+            transform = <
+                (-1000) 0       0       (-75000)
+                0       (-1000) 0       (-180000)
+                0       0       1000    (-50000)
+                0       0       0       1000
+            >;
+
+            /* IK info */
+            inverse-kinematics {
+                /* IK driver */
+                #dof = < 3 >;
+
+                /* Length in mm*10 */
+                length = < 270 700 1300 >;
+
+                /* Servo indices and offsets*/
+                servos = < &pca9685_2
+                    10 (-110)
+                    11 (-440)
+                    12 780
+                >;
+                //test = < 0 (-900) 900 >;
+
+            };
+        };
+
+        leg@7 {
+            /* Index of leg */
+            reg = < 7 >;
+
+            /* Home coordinates (leg local-space) */
+            home = < 175000 (-230000) 0 >;
+
+            /* Leg offset from center */
+            offset = < 0 0 0 >;
+
+            /* Matrix used to transform to leg local-space, scaled by 1000 */
+            transform = <
+                1000    0       0       (-75000)
+                0       (-1000) 0       (-180000)
+                0       0       1000    (-50000)
+                0       0       0       1000
+            >;
+
+            /* IK info */
+            inverse-kinematics {
+                /* IK driver */
+                #dof = < 3 >;
+
+                /* Length in mm*10 */
+                length = < 270 700 1300 >;
+
+                invert;
+
+                /* Servo indices and offsets*/
+                servos = < &pca9685_1
+                    9 110
+                    8 (-400)
+                    7 875
+                >;
+                //test = < 0 (-900) 900 >;
+
+            };
+        };
+
+    };
+};
+
+
+

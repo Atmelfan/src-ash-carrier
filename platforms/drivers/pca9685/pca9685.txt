@@ -1,0 +1,24 @@
+pca9685@8e {
+    /*Used to match driver*/
+    compatible = "nxp,pca9685";
+
+    /*Address of device*/
+    reg = < 0x8e >;
+
+    /* Update frequency */
+    freq = < 50 >;
+
+    /* Invert outputs */
+    invert-output;
+
+    /* Open drain outputs */
+    open-drain;
+
+    /* Initial values, overrides 'widths''*/
+    all = < 0 0 >;
+
+    widths = <
+        0 0 0 0 0 0 0 0 //IO0-IO7
+        0 0 0 0 0 0 0 0 //IO8-IO15
+    >;
+};

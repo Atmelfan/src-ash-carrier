@@ -1,0 +1,10 @@
+
+#
+# *** MODIFY THIS TO INCLUDE DRIVERS! ***
+#
+set(DRIVER_SOURCE
+        ${CMAKE_CURRENT_SOURCE_DIR}/pca9685/pca9685.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/lm3549/lm3549.c
+        PARENT_SCOPE
+        )
+
