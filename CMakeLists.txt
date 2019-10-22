@@ -62,17 +62,16 @@ set(CMAKE_C_STANDARD 99)
 
 
 
-set(SOURCE_FILES  main.c leg.c leg.h jetson.c jetson.h scpi/scpi.c scpi/scpi.h fdt_mathutil.c fdt_mathutil.h body.c body.h)
+set(SOURCE_FILES  main.c leg.c leg.h scpi/scpi.c scpi/scpi.h fdt_mathutil.c fdt_mathutil.h body.c body.h)
 include_directories(${LIBOCM3}/include)
 link_directories(${LIBOCM3}/lib)
 add_definitions( ${GCC_CPPFLAGS})
 
 
-
+add_subdirectory(boards)
 add_subdirectory(math)
 add_subdirectory(platforms)
 add_subdirectory(fdt)
-add_subdirectory(ik)
 add_subdirectory(gait)
 include_directories(FDT_INCLUDES)
 include(fdt/fdt.cmake)
@@ -87,6 +86,8 @@ target_link_libraries(src_carrier ${GCC_LINKLIBRARIES} ${GCC_LINKERFLAGS} ${GCC_
 
 ##Add FDT...
 target_link_libraries(src_carrier fdt)
+
+target_link_libraries(src_carrier boards)
 
 ##Add platforms...
 target_link_libraries(src_carrier platforms)

@@ -4,7 +4,7 @@
 
 #include "dev.h"
 #include "log.h"
-#include "../fdt/dtb_parser.h"
+#include "../fdt/fdt_parser.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

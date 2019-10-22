@@ -1,5 +1,4 @@
 
-add_subdirectory(${BOARD_SELECT})
 set(PLATFORM_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/systick.c
         ${CMAKE_CURRENT_SOURCE_DIR}/gpio.c

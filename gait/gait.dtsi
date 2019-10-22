@@ -8,10 +8,14 @@
 #define NUM_ADDR_CELLS 1
 #define NUM_SIZE_CELLS 0
 
+/*  */
+#define LEG_NOP  0
+#define LEG_PULL 1
+#define LEG_PUSH 2
 
 
 #ifndef __DTS__
-void test();
+
 #endif
 
 #endif //SRC_CARRIER_GAIT_DTS_CONST_H

@@ -9,6 +9,7 @@
 #include "scpi.h"
 
 void scpi_init(scpi_context_t* context){
+
 }
 
 enum scpi_cmd_typ {
@@ -56,7 +57,7 @@ scpi_status_t scpi_execute_cmd(scpi_context_t* context, scpi_command_t* t, char*
         s++;
     }
 
-    for (int i = 0; i < t->num_sub; ++i) {
+    for (int i = 0; t->sub[i].name; ++i) {
         char* next;
         enum scpi_cmd_typ x = scpi_strcmp(s, t->sub[i].name, &next);
         if(x == SCPI_SET){

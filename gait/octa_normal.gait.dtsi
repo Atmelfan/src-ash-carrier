@@ -1,0 +1,37 @@
+/*
+ * Normal gait for a octapod
+ */
+
+#include "gait.dtsi"
+
+/{
+
+    /* Gait entry point */
+    gait-normal {
+        #num-legs = < 8 >;
+        start = < &normal1 &normal2>;
+    };
+
+    normal1: gait-normal@normal1 {
+        reg = < 1 >;
+        relative = <
+            (-1)    1
+            1       (-1)
+            (-1)    1
+            1       (-1)
+         >;
+         next = < &normal2 >;
+    };
+
+    normal2: gait-normal@normal2 {
+        reg = < 2 >;
+        relative = <
+            1       (-1)
+            (-1)    1
+            1       (-1)
+            (-1)    1
+         >;
+         next = < &normal1 >;
+    };
+
+};

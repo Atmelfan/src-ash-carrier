@@ -10,6 +10,8 @@
 
 #define SCPI_IDN_STR "GPA Robotics, GPA-AIX-323b, 1.0.0"
 
+#define SCPI_END_LIST {.name = NULL}
+
 typedef struct scpi_command_t scpi_command_t;
 typedef struct scpi_context_t scpi_context_t;
 
@@ -40,7 +42,10 @@ struct scpi_command_t{
      */
     scpi_status_t (*get)(const scpi_context_t* context, char* args);
 
-    uint16_t num_sub;
+    /**
+     * Subcommands
+     * Must be terminated with a command where name=NULL
+     */
     scpi_command_t* sub;
 };
 

@@ -1,4 +1,4 @@
-add_library(gait gait.c gait.h gait_dts_const.h)
+add_library(gait gait.c gait.h gait.dtsi)
 
 ##Add gait FDT blob...
 include(../fdt/fdt.cmake)

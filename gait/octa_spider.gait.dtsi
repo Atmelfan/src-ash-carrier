@@ -1,0 +1,38 @@
+/*
+ * Spider gait for a octapod
+ */
+
+#include "gait.dtsi"
+
+/{
+
+    /* Gait entry point */
+    gait-spider {
+
+        /* Use spider1 or spider2 as starting point */
+        start = < &spider1 &spider2>;
+    };
+
+    spider1: gait-spider@spider1 {
+        reg = < 1 >;
+        relative = <
+            (-1)    1
+            (-1)    1
+            1       (-1)
+            1       (-1)
+         >;
+         next = < &spider2 >;
+    };
+
+    spider2: gait-spider@spider2 {
+        reg = < 2 >;
+        relative = <
+            1       (-1)
+            1       (-1)
+            (-1)    1
+            (-1)    1
+         >;
+         next = < &spider1 >;
+    };
+
+};

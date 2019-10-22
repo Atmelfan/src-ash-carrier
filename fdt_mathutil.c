@@ -3,7 +3,6 @@
 //
 
 #include "fdt_mathutil.h"
-#include "ik/ik_3dof.h"
 
 bool fdtmath_node_get_vec(fdt_header_t *fdt, fdt_token *t, vecx *vec) {
     if(!t)

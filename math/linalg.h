@@ -7,8 +7,8 @@
 
 #include <stdint.h>
 
-#define LVEC_VARIANT(name, namel) inline void namel (vecx* l, const vecx* r) {name(l, r, l);}
-#define LMAT_VARIANT(name, namel) inline void namel (matxx* l, const matxx* r) {name(l, r, l);}
+#define LVEC_VARIANT(name, namel) static inline void namel (vecx* l, const vecx* r) {name(l, r, l);}
+#define LMAT_VARIANT(name, namel) static inline void namel (matxx* l, const matxx* r) {name(l, r, l);}
 
 /*Sqrt function to be used*/
 #define LINALG_SQRT_F(x) (x)
@@ -112,11 +112,11 @@ void vec_cross(const vecx* l, const vecx* r, vecx* o);
 
 /**SCALING**/
 void vec_scale(const vecx* l, mat_f s, vecx* o);
-inline void vec_scalel(vecx* l, mat_f s) {vec_scale(l, s, l);}
+static inline void vec_scalel(vecx* l, mat_f s) {vec_scale(l, s, l);}
 
 /**NORMALIZATION**/
 void vec_normal(const vecx* l, vecx* o);
-inline void vec_normall(vecx* l) {vec_normal(l, l);}
+static inline void vec_normall(vecx* l) {vec_normal(l, l);}
 
 /**DOT PRODUCT**/
 mat_f vec_dot(const vecx* l, const vecx* r);

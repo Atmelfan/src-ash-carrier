@@ -10,7 +10,7 @@
 #include "../../log.h"
 #include "../../pwm.h"
 #include "../../i2c.h"
-#include "../../../fdt/dtb_parser.h"
+#include "../../../fdt/fdt_parser.h"
 
 #define PCA9685_REG_MODE1 0x00
 #define PCA9685_REG_MODE2 0x01

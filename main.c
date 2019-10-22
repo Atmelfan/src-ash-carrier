@@ -8,17 +8,16 @@
 #include <libopencm3/stm32/usart.h>
 #include <string.h>
 #include "math/linalg.h"
-#include "fdt/dtb_parser.h"
-#include "jetson.h"
+#include "fdt/fdt_parser.h"
 #include "leg.h"
 #include "platforms/board.h"
 #include "platforms/i2c.h"
 #include "platforms/log.h"
 #include "body.h"
-#include "ik/ik_3dof.h"
 #include "math/linalg_util.h"
 #include "gait/gait.h"
 #include "scpi/scpi.h"
+#include "boards/board.h"
 
 #define MAX_NUM_APPENDAGES 64
 
@@ -34,8 +33,8 @@ extern fdt_header_t octapod;
 /* Body state */
 body_t body;
 leg_t* legs = NULL;
-gait_target* targets = NULL;
-gait_t gait;
+gait_target* current_targets = NULL;
+gait_t current_gait;
 uint8_t  gait_index = 0;
 
 
@@ -134,7 +133,7 @@ void uart2_send(char* s){
 void init_gait(gait_t *gait, gait_target *targets) {
     gait->state = GAIT_IDLE;
     gait->vec = VEC4_ZERO();
-    gait->angle = 0;
+    gait->phi = 0;
     for (int k = 0; k < 8; ++k) {
         targets[k].initial = VEC4_ZERO();
         targets[k].target = VEC4_ZERO();
@@ -152,7 +151,7 @@ void start_gait(gait_t* gait, gait_step *step, gait_target *targets, vec4* mov, 
 
     gait->state = GAIT_RUNNING;
     gait->vec = *mov;
-    gait->angle = da;
+    gait->phi = da;
 
     /* Go to next */
     for (int k = 0; k < 8; ++k) {
@@ -182,7 +181,7 @@ void next_gait(gait_t *gait, gait_step *step, gait_target *targets){
                 targets[k].target = gait->vec;
                 targets[k].iangle = targets[k].tangle;
                 targets[k].raise = step->raise[k];
-                targets[k].tangle = gait->angle * (targets[k].raise ? 1 : -1);
+                targets[k].tangle = gait->phi * (targets[k].raise ? 1 : -1);
                 vec_scalel((vecx *)&targets[k].target, targets[k].raise ? 1 : -1);
             }
             break;
@@ -213,8 +212,7 @@ bool active_gait(gait_t* gait){
 }
 
 scpi_status_t body_mat_reset(const scpi_context_t *context, char *args){
-    body.model = MAT4_IDENT();
-    //logd_printfs(LOG_INFO, "rot\n");
+    body_reset(&body);
     return SCPI_SUCCESS;
 }
 
@@ -232,13 +230,13 @@ scpi_status_t body_rot_set(const scpi_context_t *context, char *args){
 
         switch (i){
             case 1:
-                mat4_rotz((float) ((a / 180.0f) * M_PI), &temp);//YAW
+                mat4_make_rotz((float) ((a / 180.0f) * M_PI), &temp);//YAW
                 break;
             case 2:
-                mat4_rotx((float) ((a / 180.0f) * M_PI), &temp);//PITCH
+                mat4_make_rotx((float) ((a / 180.0f) * M_PI), &temp);//PITCH
                 break;
             case 3:
-                mat4_roty((float) ((a / 180.0f) * M_PI), &temp);//ROLL
+                mat4_make_roty((float) ((a / 180.0f) * M_PI), &temp);//ROLL
                 break;
             default:
                 break;
@@ -314,12 +312,12 @@ scpi_status_t scpi_gait_start(const scpi_context_t *context, char *args){
 
         token = strtok_r(NULL, ",", &end);
     }
-    start_gait(&gait, &test_gait[0], targets, &v, angle);
+    start_gait(&current_gait, &test_gait[0], current_targets, &v, angle);
     return SCPI_SUCCESS;
 }
 
 scpi_status_t scpi_gait_stop_query(const scpi_context_t *context, char *args){
-    if(active_gait(&gait)){
+    if(active_gait(&current_gait)){
         uart2_send("1\n");
     }else{
         uart2_send("0\n");
@@ -328,7 +326,7 @@ scpi_status_t scpi_gait_stop_query(const scpi_context_t *context, char *args){
 }
 
 scpi_status_t scpi_gait_stop(const scpi_context_t *context, char *args){
-    stop_gait(&gait);
+    stop_gait(&current_gait);
     return SCPI_SUCCESS;
 }
 
@@ -357,81 +355,70 @@ void set_servo(pwm_dev_t *pca, uint32_t index, int32_t degres_10, uint32_t scale
 scpi_context_t scpi = {
         .root = {
                 .name = ".",
-                .num_sub = 2,
                 .sub = (scpi_command_t[]){
                         {
                                 .name = "*IDN",
-                                .num_sub = 0,
                                 .set = NULL,
                                 .get = NULL
                         },
                         {
                                 .name = "*RST",
-                                .num_sub = 0,
+                                .set = NULL,
+                                .get = NULL
+                        },
+                        {
+                                .name = "*OPC",
                                 .set = NULL,
                                 .get = NULL
                         },
                         {
                                 .name = "BODy",
-                                .num_sub = 3,
                                 .sub = (scpi_command_t[]){
                                         {
                                                 .name = "RESet",
-                                                .num_sub = 0,
                                                 .set = body_mat_reset,
                                                 .get = NULL
                                         },
                                         {
                                                 .name = "ROTate",
-                                                .num_sub = 0,
                                                 .set = body_rot_set,
                                                 .get = NULL
                                         },
                                         {
                                                 .name = "TRAnslate",
-                                                .num_sub = 0,
                                                 .set = body_tra_set,
                                                 .get = NULL
                                         },
+                                        SCPI_END_LIST
                                 }
 
                         },
                         {
                                 .name = "GAIt",
-                                .num_sub = 5,
                                 .sub = (scpi_command_t[]){
                                         {
                                                 .name = "STOp",
-                                                .num_sub = 0,
                                                 .set = scpi_gait_stop,
                                                 .get = scpi_gait_stop_query
                                         },
                                         {
                                                 .name = "STArt",
-                                                .num_sub = 0,
                                                 .set = scpi_gait_start,
                                                 .get = NULL
                                         },
                                         {
                                                 .name = "STAtus",
-                                                .num_sub = 0,
                                                 .set = NULL,
                                                 .get = NULL
                                         },
-                                        {
-                                                .name = "TRAnslation",
-                                                .num_sub = 0,
-                                                .set = NULL,
-                                                .get = NULL
-                                        },
-                                        {
-                                                .name = "ROTation",
-                                                .num_sub = 0,
-                                                .set = NULL,
-                                                .get = NULL
-                                        }
+                                        SCPI_END_LIST
                                 },
-                        }
+                        },
+                        {
+                            .name = NULL,
+
+                        },
+                        SCPI_END_LIST
                 },
         }
 };
@@ -446,16 +433,18 @@ int main(void)
 #ifdef DEBUG
     initialise_monitor_handles();
 #endif
+
+    board_init();
     clock_setup();
-    jetson_batocp(false);
+
+    // TODO: Use board instead
+    //jetson_batocp(false);
 
     printf("Hello world!\n");
 
     /*  */
     fdt_header_t* fdt = &octapod;
     fdt_token* root = fdt_get_tokens(fdt);
-    fdt_token* bootmsg = fdt_node_get_prop(fdt, root, "bootmsg", false);
-    printf("%s\n", bootmsg->prop_str);
 
     /*Override board init file with "/platform" node*/
     board_init_fdt(fdt, fdt_find_subnode(fdt, root, "platform"));
@@ -471,8 +460,8 @@ int main(void)
     }else{
         /* Allocate appendages*/
         legs = malloc(sizeof(leg_t)*num_legs);
-        targets = malloc(sizeof(gait_target)*num_legs);
-        assert(legs && targets && "Out of memory");
+        current_targets = malloc(sizeof(gait_target)*num_legs);
+        assert(legs && current_targets && "Out of memory");
 
         /* Initialize appendages */
         for(int j = 0; j < num_legs; ++j){
@@ -550,7 +539,7 @@ int main(void)
     logd_pop();
     logd_printfs(LOG_INFO, "ready!\n");
 
-    while(!targets || !legs);
+    while(!current_targets || !legs);
 
     //TODO: (in order) gait, commands+remote, light
 
@@ -562,7 +551,7 @@ int main(void)
 
     /* Body struct keeps track of body rotation and translation */
     body_init(&body);
-    init_gait(&gait, targets);
+    init_gait(&current_gait, current_targets);
 
     /*Init uart */
     usart2_setup();
@@ -576,13 +565,7 @@ int main(void)
         now = dev_systick_get();
         dt = now - last;
 
-        /* Raise from floor slowly */
-        if(tboot < 5000)
-            tboot += dt;
-        body.offset.members[2] = tboot/100.0f;
-
-
-        if(active_gait(&gait)){
+        if(active_gait(&current_gait)){
             if((t + dt < 2500)){
                 t = t + dt;
 
@@ -591,7 +574,7 @@ int main(void)
                 gait_index++;
                 if(gait_index > 1)
                     gait_index = 0;
-                next_gait(&gait, &test_gait[gait_index], targets);
+                next_gait(&current_gait, &test_gait[gait_index], current_targets);
             }
         }
 
@@ -600,23 +583,22 @@ int main(void)
             vec4 l = legs[i].home_position;
             vec4 tmp = VEC4(0, 0, 0, 1), target;
 
-            /* Subtract body offset */
-            vec_sub((vecx *) &l, (vecx *) &body.offset, (vecx*) &tmp);
-            target = tmp;
+            target = l;
 
             /* TODO:  and translate with gait */
             //mat4 gait_model = MAT4_IDENT();
             //vecmat_mul((matxx*)&gait_model, (vecx*)&target, (vecx*)&tmp);
             //target = tmp;
-            if(active_gait(&gait)){
+            if(active_gait(&current_gait)){
                 vec4 c = VEC4_ZERO();
-                vec_sub((vecx *) &targets[i].target, (vecx *) &targets[i].initial, (vecx *) &c);
+                vec_sub((vecx *) &current_targets[i].target, (vecx *) &current_targets[i].initial, (vecx *) &c);
                 vec_scalel((vecx *)&c, t / 2500.0f);
-                vec_addl((vecx *) &c, (vecx *) &targets[i].initial);
+                vec_addl((vecx *) &c, (vecx *) &current_targets[i].initial);
 
-                c.members[2] += 100.0f*sinf(3.14f*t/2500.0f) * (targets[i].raise ? 1 : 0);
-                mat4_rotz(targets[i].iangle + (targets[i].tangle - targets[i].iangle)*t/2500.0f, &gait_mat);
-                mat4_trans(&c, &gait_mat);
+                c.members[2] += 100.0f*sinf(3.14f*t/2500.0f) * (current_targets[i].raise ? 1 : 0);
+                mat4_make_rotz(current_targets[i].iangle + (current_targets[i].tangle - current_targets[i].iangle) * t / 2500.0f,
+                               &gait_mat);
+                mat4_make_translate(&c, &gait_mat);
                 vecmat_mul((matxx*)&gait_mat, (vecx*)&target, (vecx*)&tmp);
                 target = tmp;
             }

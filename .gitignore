@@ -131,7 +131,7 @@ fabric.properties
 
 ### CLion Patch ###
 # Comment Reason: 
-https://github.com/joeblau/gitignore.io/issues/186#issuecomment-215987721
+# https://github.com/joeblau/gitignore.io/issues/186#issuecomment-215987721
 
 # *.iml
 # modules.xml

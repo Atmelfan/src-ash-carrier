@@ -36,11 +36,7 @@ bool leg_from_node(leg_t* l, fdt_header_t* fdt, fdt_token* node){
     /* Read offset vector */
     fdt_token* offset = fdt_node_get_prop(fdt, node, "offset", false);
     l->offset_position = VEC4_ZERO();
-    if(offset == NULL){
-        for(int i = 0; i < 3; ++i){
-            l->offset_position.members[i] = 0;
-        }
-    }else{
+    if(offset){
         for(int i = 0; i < 3; ++i){
             l->offset_position.members[i] = ((int32_t)fdt_read_u32(&offset->cells[i]))/1000.0f;
         }

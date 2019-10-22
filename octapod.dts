@@ -1,11 +1,10 @@
 /dts-v1/;
 
 #include "platforms/gpio.dtsi"
-#include "gait/gait_octa_home.dtsi"
+#include "gait/octa_normal.gait.dtsi"
+#include "gait/octa_spider.gait.dtsi"
 
 / {
-    /* Boot message displayed on LCD */
-    bootmsg = "GPA-Robotics","gpa-robotics.com";
     #address-cells = <1>;
     #size-cells = <0>;
 
@@ -14,8 +13,15 @@
 
         /* Standby body translation */
         standby-translation = < 0 0 50 >;
+
+        /* Registered gaits */
+        gaits = <
+            &{/gait-normal}
+            &{/gait-spider}
+        >;
     };
 
+    //TODO: Remove all hardware related stuff
     platform {
         compatible = "stm,stm32f4";
 

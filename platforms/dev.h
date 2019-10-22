@@ -7,7 +7,7 @@
 
 
 #include <stdint.h>
-#include "../fdt/dtb_parser.h"
+#include "../fdt/fdt_parser.h"
 
 typedef enum {
     DEV_TYPE_NULL = 0,  /*Unknown or invalid device*/

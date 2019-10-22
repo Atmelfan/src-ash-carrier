@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include "../i2c.h"
 #include "../dev.h"
-#include "../../fdt/dtb_parser.h"
+#include "../../fdt/fdt_parser.h"
 #include "../log.h"
 
 #define I2C_MAX_FREQ 400000
