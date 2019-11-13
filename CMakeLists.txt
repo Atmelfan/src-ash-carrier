@@ -70,7 +70,6 @@ add_definitions( ${GCC_CPPFLAGS})
 
 add_subdirectory(boards)
 add_subdirectory(math)
-add_subdirectory(platforms)
 add_subdirectory(fdt)
 add_subdirectory(gait)
 include_directories(FDT_INCLUDES)
@@ -88,9 +87,6 @@ target_link_libraries(src_carrier ${GCC_LINKLIBRARIES} ${GCC_LINKERFLAGS} ${GCC_
 target_link_libraries(src_carrier fdt)
 
 target_link_libraries(src_carrier boards)
-
-##Add platforms...
-target_link_libraries(src_carrier platforms)
 
 ##Add gait
 target_link_libraries(src_carrier gait)

@@ -10,9 +10,6 @@
 #include "math/linalg.h"
 #include "fdt/fdt_parser.h"
 #include "leg.h"
-#include "platforms/board.h"
-#include "platforms/i2c.h"
-#include "platforms/log.h"
 #include "body.h"
 #include "math/linalg_util.h"
 #include "gait/gait.h"
@@ -22,10 +19,6 @@
 #define MAX_NUM_APPENDAGES 64
 
 #define RECV_BUF_SIZE 128
-#ifdef DEBUG
-extern void initialise_monitor_handles(void);
-
-#endif
 
 /* FDT Linked binary */
 extern fdt_header_t octapod;
@@ -47,16 +40,6 @@ gait_step test_gait[] = {
         }
 };
 
-
-/* Set STM32 to 168 MHz. */
-static void clock_setup(void)
-{
-    rcc_clock_setup_hse_3v3(&rcc_hse_25mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
-}
-
-void sys_tick_handler(){
-    dev_systick();
-}
 
 // TODO: Remove this POS
 /********************REMOVE********************/
@@ -85,39 +68,6 @@ void usart2_isr(void)
 
         }
     } while ((reg & USART_SR_RXNE) != 0); /* can read back-to-back interrupts */
-}
-
-void usart2_setup(){
-    gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2 | GPIO3);
-
-    /* Actual Alternate function number (in this case 7) is part
-     * depenedent, CHECK THE DATA SHEET for the right number to
-     * use.
-     */
-    gpio_set_af(GPIOA, GPIO_AF7, GPIO2 | GPIO3);
-
-
-    /* This then enables the clock to the USART1 peripheral which is
-     * attached inside the chip to the APB1 bus. Different peripherals
-     * attach to different buses, and even some UARTS are attached to
-     * APB1 and some to APB2, again the data sheet is useful here.
-     */
-    rcc_periph_clock_enable(RCC_USART2);
-
-    /* Set up USART/UART parameters using the libopencm3 helper functions */
-    usart_set_baudrate(USART2, 115200);
-    usart_set_databits(USART2, 8);
-    usart_set_stopbits(USART2, USART_STOPBITS_1);
-    usart_set_mode(USART2, USART_MODE_TX_RX);
-    usart_set_parity(USART2, USART_PARITY_NONE);
-    usart_set_flow_control(USART2, USART_FLOWCONTROL_NONE);
-    usart_enable(USART2);
-
-    /* Enable interrupts from the USART */
-    nvic_enable_irq(NVIC_USART2_IRQ);
-
-    /* Specifically enable recieve interrupts */
-    usart_enable_rx_interrupt(USART2);
 }
 
 void uart2_send(char* s){
@@ -330,28 +280,6 @@ scpi_status_t scpi_gait_stop(const scpi_context_t *context, char *args){
     return SCPI_SUCCESS;
 }
 
-/**
- * Set a servo to the requested angle
- * @param pca, pwm device
- * @param index, servo channel
- * @param degres_10, degrees scaled by 10
- * @param scale, number of us to turn 90 degrees
- */
-void set_servo(pwm_dev_t *pca, uint32_t index, int32_t degres_10, uint32_t scale) {
-    uint32_t period = ((pwm_driver_t*)pca->dev.drv)->period;
-
-    uint32_t us = (uint32_t) (1500 + (int32_t)(degres_10*scale)/900);
-
-    if(us < 250)
-        us = 250;
-    else if(us > 2750)
-        us = 2750;
-
-    uint32_t counts = (us*period)/20000;
-
-    set_pwm(pca, (uint16_t) index, 0, counts);
-}
-
 scpi_context_t scpi = {
         .root = {
                 .name = ".",
@@ -430,15 +358,7 @@ scpi_context_t scpi = {
 int main(void)
 {
 
-#ifdef DEBUG
-    initialise_monitor_handles();
-#endif
-
     board_init();
-    clock_setup();
-
-    // TODO: Use board instead
-    //jetson_batocp(false);
 
     printf("Hello world!\n");
 
@@ -446,16 +366,13 @@ int main(void)
     fdt_header_t* fdt = &octapod;
     fdt_token* root = fdt_get_tokens(fdt);
 
-    /*Override board init file with "/platform" node*/
-    board_init_fdt(fdt, fdt_find_subnode(fdt, root, "platform"));
-
     /* Read legs  */
     fdt_token* legs_node = fdt_find_subnode(fdt, root, "legs");
     uint32_t num_legs = fdt_node_get_u32(fdt, legs_node, "#num-legs", 0);
     uint32_t servo_scale = fdt_node_get_u32(fdt, legs_node, "servo-scale", 0);
-    logd_push("legs");
+
     if(!num_legs || (num_legs >= MAX_NUM_APPENDAGES)){
-        logd_printfs(LOG_ERROR, "property '#num-legs' missing or out of range\n");
+        printf("property '#num-legs' missing or out of range\n");
         //assert(false && "Property '#num-legs' missing or 0");
     }else{
         /* Allocate appendages*/
@@ -473,73 +390,30 @@ int main(void)
             /*Check for nodes*/
             if(fdt_token_get_type(l) == FDT_BEGIN_NODE){
                 //printf("-> %s:\n", fdt_trace(fdt, l, buffer));
-                logd_push(l->name);
 
                 uint32_t reg = fdt_node_get_u32(fdt, l, "reg", num_legs);
 
                 /* Check leg index within range*/
                 if(reg >= num_legs){
-                    logd_printf(LOG_ERROR, "reg out of range", reg);
-                    logd_pop();
                     l = fdt_node_end(fdt, l);
                     continue;
                 }
 
                 /* Read leg parameters*/
                 if(!leg_from_node(&legs[reg], fdt, l)){
-                    logd_pop();
                     l = fdt_node_end(fdt, l);
                     continue;
                 }
 
-                if(legs[reg].pwm_dev){
-                    //leg_move_to_vec(&ik_appendages[reg], &ik_appendages[reg].home_position);
-                    vec4 s = legs[reg].home_position;
-                    logd_printf(LOG_DEBUG, "home at %f, %f, %f\n", s.members[0], s.members[1], s.members[2]);
-                }else{
-                    logd_printfs(LOG_WARNING, "no servo driver\n");
-                }
-
-                /* Read ik parameters */
-                //TODO: Remove this shit
-                fdt_token* ik = fdt_find_subnode(fdt, l, "inverse-kinematics");
-                if(ik){
-                    fdt_token* test = fdt_node_get_prop(fdt, ik, "test", false);
-
-                    if(test){
-                        fdt_token* invert = fdt_node_get_prop(fdt, ik, "invert", false);
-                        fdt_token* servos = fdt_node_get_prop(fdt, ik, "servos", false);
-
-                        /* Find servo driver */
-                        uint32_t servo_phandle = fdt_read_u32(&servos->cells[0]);
-                        pwm_dev_t* pca = (pwm_dev_t *) dev_find_device_phandle(servo_phandle);
-
-                        if(pca){
-                            int32_t s[3];
-                            for (int i = 0; i < 3; ++i) {
-                                uint32_t index = fdt_read_u32(&servos->cells[1 + 2*i + 0]);
-                                s[i] = ((int32_t)fdt_read_u32(&test->cells[i]) - (int32_t)fdt_read_u32(&servos->cells[1 + 2*i + 1])) * (invert ? -1 : 1);
-                                set_servo(pca, index, (int32_t) s[i], servo_scale);
-                            }
-                            logd_printf(LOG_DEBUG, "positioned to %d, %d, %d\n", s[0]/10, s[1]/10, s[2]/10);
-                        }
-
-                    }
-
-                }else{
-                    logd_printfs(LOG_INFO, "node 'inverse-kinematics' missing\n");
-                }
+                vec4 s = legs[reg].home_position;
+                printf("home at %f, %f, %f\n", s.members[0], s.members[1], s.members[2]);
 
                 /*Exit node*/
-                logd_pop();
                 l = fdt_node_end(fdt, l);
             }
         }
     }
-    logd_pop();
-    logd_printfs(LOG_INFO, "ready!\n");
-
-    while(!current_targets || !legs);
+    printf("ready!\n");
 
     //TODO: (in order) gait, commands+remote, light
 
@@ -547,14 +421,11 @@ int main(void)
     fdt_token* chosen = fdt_find_subnode(fdt, root, "chosen");
 
     /* Timekeeping */
-    uint32_t last = 0, dt = 0, now = 0, t = 0, tboot = 0;
+    uint32_t last = 0, dt = 0, now = 0, t = 0;
 
     /* Body struct keeps track of body rotation and translation */
     body_init(&body);
     init_gait(&current_gait, current_targets);
-
-    /*Init uart */
-    usart2_setup();
 
     /*TODO: Gait code modularization */
     mat4 gait_mat = MAT4_IDENT();
@@ -562,7 +433,7 @@ int main(void)
     while(true){
 
         /* Calculate delta-t */
-        now = dev_systick_get();
+        now = board_systick();
         dt = now - last;
 
         if(active_gait(&current_gait)){
@@ -611,6 +482,8 @@ int main(void)
             /* Move to target */
             leg_move_to_vec(&legs[i], &target);
         }
+
+
 
         if(recv_complete){
             //logd_printf(LOG_INFO, "> %s\n", recv_buf);

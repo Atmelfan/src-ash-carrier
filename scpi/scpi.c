@@ -6,11 +6,22 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <assert.h>
 #include "scpi.h"
 
-void scpi_init(scpi_context_t* context){
-
+void scpi_init(scpi_context_t *context, const scpi_command_t *commands, void (*write)(char)) {
+    context->push_out = write;
 }
+
+void scpi_puts(const scpi_context_t *context, const char *s) {
+    assert(context->push_out);
+
+    for (; *s; s++) {
+        context->push_out(*s);
+    }
+}
+
+
 
 enum scpi_cmd_typ {
     SCPI_NONE = 0,
@@ -93,4 +104,25 @@ void scpi_execute(scpi_context_t* context, char* s, char* buf){
         token = strtok_r(NULL, ";", &end);
     }
 
+}
+
+uint8_t scpi_get_stb(scpi_context_t *context) {
+    uint8_t tmp = (context->_stb & context->sre) & (uint8_t)~(1 << 6);
+    tmp |= (tmp ? (1 << 6) : 0);
+    tmp |= (context->esr & context->ese) ? (1 << 5) : 0;
+    return (uint8_t) (tmp | (tmp ? 0x40 : 0x00));
+}
+
+bool scpi_push_error(scpi_context_t *context, scpi_error_e err) {
+
+    /* Advance end pointer and wrap around if necessary */
+    uint8_t index = context->end;
+
+    /*  */
+    if(index != context->begin){
+        context->errors[index] = err;
+        context->end++;
+        return true;
+    }
+    return false;
 }

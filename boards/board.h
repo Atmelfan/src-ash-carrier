@@ -9,4 +9,6 @@ void board_init(void);
 
 void board_update(void);
 
+uint32_t board_systick();
+
 #endif //SRC_CARRIER_BOARD_H

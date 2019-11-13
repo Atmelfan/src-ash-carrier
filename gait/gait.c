@@ -5,5 +5,4 @@
 #include "gait.h"
 #include "../leg.h"
 #include "../fdt/fdt_parser.h"
-#include "../platforms/log.h"
 #include "../fdt_mathutil.h"

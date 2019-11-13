@@ -8,7 +8,6 @@
 #include <stdbool.h>
 #include "math/linalg.h"
 #include "fdt/fdt_parser.h"
-#include "platforms/pwm.h"
 
 typedef enum {
     LEG_AT_HOME = 0,
@@ -32,8 +31,7 @@ typedef struct {
     uint8_t invert[3];
     uint32_t scale;
 
-    /* PWM device used to control the servos */
-    pwm_dev_t* pwm_dev;
+    int32_t servo_period[3];
 
     /* Status of leg movement */
     leg_status status;

@@ -46,8 +46,21 @@ void init_scpi_usart(){
 }
 
 
+/* Set STM32 to 168 MHz. */
+static void clock_setup(void)
+{
+    rcc_clock_setup_pll(&rcc_hse_25mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
+}
 
 void board_init(){
+
+    /* Use semihosting if in debug */
+#ifdef DEBUG
+    extern void initialise_monitor_handles(void);
+    initialise_monitor_handles();
+#endif
+
+    clock_setup();
 
     init_jetson();
 
@@ -57,6 +70,10 @@ void board_init(){
 }
 
 void board_update(){
+
+}
+
+void sys_tick_handler(){
 
 }
 
