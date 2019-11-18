@@ -27,8 +27,139 @@ enum scpi_cmd_typ {
     SCPI_NONE = 0,
     SCPI_SET,
     SCPI_GET,
+    SCPI_NEXT,
+    
+    SCPI_HEADER,
+    SCPI_ARGS,
     SCPI_NEXT
 };
+
+scpi_error_e scpitok_header(char* s, char** token, char** end) {
+    if(s)
+        *end = s;
+    
+    /* Empty string, do not continue */
+    if(**end == NULL || *end == NULL)
+        return SCPI_NOERROR;
+    
+    char* str = *end;
+    *token = str;
+    
+    for(; *str; str++){
+        /* Start of args */
+        if(isspace(*str)){
+            *str = '\0';
+            return _SCPI_ARGS;
+        }
+        /* Start of next command */
+        else if(*str == ';'){
+            *str = '\0';
+            return _SCPI_NEXT;
+        }
+        /* Header continues */
+        else if(*str == ':'){
+            *str = '\0';
+            return _SCPI_HEADER;
+        }
+        /* Check for unallowed characters */
+        if(!isalnum(*str))
+            return SCPI_SYNTAX_ERROR;
+    }
+    
+    /* End of string */
+    return _SCPI_HEADER;
+}
+
+scpi_error_e scpitok_arg(char** token, char** end) {
+    /* Empty string, do not continue */
+    if(**end == NULL || *end == NULL)
+        return SCPI_NOERROR;
+    
+    char* str = *end;
+    *token = str;
+    
+    bool quoted = false;
+    
+    for(; *str; str++){
+        /* Check for a string argument */
+        if(*str == '"' || *str == '\''){
+            //TODO, check for escape char
+            //TODO, check previous quote char
+            quoted = !quoted;
+        }        
+        /* Check for arg delimiter */
+        else if(*str == ',' && !quoted){
+            *str = '\0';
+            return _SCPI_ARGS;
+        }
+        /* Start of next command */
+        else if(*str == ';' && !quoted){
+            *str = '\0';
+            return _SCPI_NEXT;
+        }
+        /* Check for invalid (non-ascii) characters */
+        if(iscntrl(*str) || *str > 127)
+            return SCPI_INVALID_CHAR;
+    }
+    
+    /* End of string */
+    return _SCPI_ARGS;
+}
+
+scpi_error_e scpitok_arg_bool(char** token, char** end, bool* arg){
+    /* Parse argument */
+    scpi_error_e r = scpitok_arg(token, end);
+    if(r != _SCPI_ARGS)
+        return r;
+    
+    /* Parse boolean */
+    if(!scpi_cmp(*token, "ON") || !strcmp(*token, "1")){
+        *arg = true;    
+    }else if(!scpi_cmp(*token, "OFF") || !strcmp(*token, "0")){
+        *arg = false;
+    }else{
+        return SCPI_SYNTAX_ERROR;
+    }
+    return r;
+}
+
+scpi_error_e scpitok_arg_numeric(char** token, char** end, int32_t* arg){
+     /* Parse argument */
+    scpi_error_e r = scpitok_arg(token, end);
+    if(r != _SCPI_ARGS)
+        return r;
+    
+    //TODO, make custom numeric parser
+    scpi_error_e i = scpi_atoi(*token, arg);
+    
+    return i ? i : r;
+}
+
+scpi_error_e scpitok_arg_enumeric(char** token, char** end, int32_t* arg, int32_t max, int32_t min, int32_t def){
+     /* Parse argument */
+    scpi_error_e r = scpitok_arg(token, end);
+    if(r != _SCPI_ARGS)
+        return r;
+    
+    if(!scpi_cmp(*token, "DEFault")){
+        *arg = def;
+    }else if(!scpi_cmp(*token, "UP")){
+        if(*arg < max)
+            *arg++;
+    }else if(!scpi_cmp(*token, "DOWN")){
+        if(*arg > min)
+            *arg--;
+    }else if(scpi_cmp(*token, "MINimum")){
+        *arg = min;
+    }else if(scpi_cmp(*token, "MAXimum")){
+        *arg = max;
+    }else{
+        scpi_error_e i = scpi_atoi(*token, arg);
+        return i ? i : r;
+    }
+    return r;
+}
+
 
 /**
  * Compare a string against a SCPI identifier
