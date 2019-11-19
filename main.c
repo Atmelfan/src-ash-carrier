@@ -7,16 +7,14 @@
 #include <math.h>
 #include <libopencm3/stm32/usart.h>
 #include <string.h>
-#include "math/linalg.h"
+#include "linalg/linalg.h"
 #include "fdt/dtb_parser.h"
-#include "jetson.h"
 #include "leg.h"
 #include "platforms/board.h"
 #include "platforms/i2c.h"
 #include "platforms/log.h"
 #include "body.h"
-#include "ik/ik_3dof.h"
-#include "math/linalg_util.h"
+#include "linalg/linalg_util.h"
 #include "gait/gait.h"
 #include "scpi/scpi.h"
 
@@ -52,11 +50,11 @@ gait_step test_gait[] = {
 /* Set STM32 to 168 MHz. */
 static void clock_setup(void)
 {
-    rcc_clock_setup_hse_3v3(&rcc_hse_25mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
+    rcc_clock_setup_pll(&rcc_hse_25mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
 }
 
 void sys_tick_handler(){
-    dev_systick();
+    //dev_systick();
 }
 
 // TODO: Remove this POS
@@ -351,90 +349,9 @@ void set_servo(pwm_dev_t *pca, uint32_t index, int32_t degres_10, uint32_t scale
 
     uint32_t counts = (us*period)/20000;
 
-    set_pwm(pca, (uint16_t) index, 0, counts);
+    //TODO: Call board_set_servo()
+    //set_pwm(pca, (uint16_t) index, 0, counts);
 }
-
-scpi_context_t scpi = {
-        .root = {
-                .name = ".",
-                .num_sub = 2,
-                .sub = (scpi_command_t[]){
-                        {
-                                .name = "*IDN",
-                                .num_sub = 0,
-                                .set = NULL,
-                                .get = NULL
-                        },
-                        {
-                                .name = "*RST",
-                                .num_sub = 0,
-                                .set = NULL,
-                                .get = NULL
-                        },
-                        {
-                                .name = "BODy",
-                                .num_sub = 3,
-                                .sub = (scpi_command_t[]){
-                                        {
-                                                .name = "RESet",
-                                                .num_sub = 0,
-                                                .set = body_mat_reset,
-                                                .get = NULL
-                                        },
-                                        {
-                                                .name = "ROTate",
-                                                .num_sub = 0,
-                                                .set = body_rot_set,
-                                                .get = NULL
-                                        },
-                                        {
-                                                .name = "TRAnslate",
-                                                .num_sub = 0,
-                                                .set = body_tra_set,
-                                                .get = NULL
-                                        },
-                                }
-
-                        },
-                        {
-                                .name = "GAIt",
-                                .num_sub = 5,
-                                .sub = (scpi_command_t[]){
-                                        {
-                                                .name = "STOp",
-                                                .num_sub = 0,
-                                                .set = scpi_gait_stop,
-                                                .get = scpi_gait_stop_query
-                                        },
-                                        {
-                                                .name = "STArt",
-                                                .num_sub = 0,
-                                                .set = scpi_gait_start,
-                                                .get = NULL
-                                        },
-                                        {
-                                                .name = "STAtus",
-                                                .num_sub = 0,
-                                                .set = NULL,
-                                                .get = NULL
-                                        },
-                                        {
-                                                .name = "TRAnslation",
-                                                .num_sub = 0,
-                                                .set = NULL,
-                                                .get = NULL
-                                        },
-                                        {
-                                                .name = "ROTation",
-                                                .num_sub = 0,
-                                                .set = NULL,
-                                                .get = NULL
-                                        }
-                                },
-                        }
-                },
-        }
-};
 
 
 
@@ -447,7 +364,8 @@ int main(void)
     initialise_monitor_handles();
 #endif
     clock_setup();
-    jetson_batocp(false);
+    //TODO: init board
+    //jetson_batocp(false);
 
     printf("Hello world!\n");
 
@@ -458,15 +376,15 @@ int main(void)
     printf("%s\n", bootmsg->prop_str);
 
     /*Override board init file with "/platform" node*/
-    board_init_fdt(fdt, fdt_find_subnode(fdt, root, "platform"));
+    //board_init_fdt(fdt, fdt_find_subnode(fdt, root, "platform"));
 
     /* Read legs  */
     fdt_token* legs_node = fdt_find_subnode(fdt, root, "legs");
     uint32_t num_legs = fdt_node_get_u32(fdt, legs_node, "#num-legs", 0);
     uint32_t servo_scale = fdt_node_get_u32(fdt, legs_node, "servo-scale", 0);
-    logd_push("legs");
+    //logd_push("legs");
     if(!num_legs || (num_legs >= MAX_NUM_APPENDAGES)){
-        logd_printfs(LOG_ERROR, "property '#num-legs' missing or out of range\n");
+        //logd_printfs(LOG_ERROR, "property '#num-legs' missing or out of range\n");
         //assert(false && "Property '#num-legs' missing or 0");
     }else{
         /* Allocate appendages*/
@@ -484,31 +402,31 @@ int main(void)
             /*Check for nodes*/
             if(fdt_token_get_type(l) == FDT_BEGIN_NODE){
                 //printf("-> %s:\n", fdt_trace(fdt, l, buffer));
-                logd_push(l->name);
+                //logd_push(l->name);
 
                 uint32_t reg = fdt_node_get_u32(fdt, l, "reg", num_legs);
 
                 /* Check leg index within range*/
                 if(reg >= num_legs){
-                    logd_printf(LOG_ERROR, "reg out of range", reg);
-                    logd_pop();
+                    //logd_printf(LOG_ERROR, "reg out of range", reg);
+                    //logd_pop();
                     l = fdt_node_end(fdt, l);
                     continue;
                 }
 
                 /* Read leg parameters*/
                 if(!leg_from_node(&legs[reg], fdt, l)){
-                    logd_pop();
+                    //logd_pop();
                     l = fdt_node_end(fdt, l);
                     continue;
                 }
 
                 if(legs[reg].pwm_dev){
                     //leg_move_to_vec(&ik_appendages[reg], &ik_appendages[reg].home_position);
-                    vec4 s = legs[reg].home_position;
-                    logd_printf(LOG_DEBUG, "home at %f, %f, %f\n", s.members[0], s.members[1], s.members[2]);
+                    //vec4 s = legs[reg].home_position;
+                    //logd_printf(LOG_DEBUG, "home at %f, %f, %f\n", s.members[0], s.members[1], s.members[2]);
                 }else{
-                    logd_printfs(LOG_WARNING, "no servo driver\n");
+                    //logd_printfs(LOG_WARNING, "no servo driver\n");
                 }
 
                 /* Read ik parameters */
@@ -523,32 +441,33 @@ int main(void)
 
                         /* Find servo driver */
                         uint32_t servo_phandle = fdt_read_u32(&servos->cells[0]);
-                        pwm_dev_t* pca = (pwm_dev_t *) dev_find_device_phandle(servo_phandle);
+                        //TODO: use board_set_pwm?
+                        //pwm_dev_t* pca = (pwm_dev_t *) dev_find_device_phandle(servo_phandle);
 
-                        if(pca){
+                        /*if(pca){
                             int32_t s[3];
                             for (int i = 0; i < 3; ++i) {
                                 uint32_t index = fdt_read_u32(&servos->cells[1 + 2*i + 0]);
                                 s[i] = ((int32_t)fdt_read_u32(&test->cells[i]) - (int32_t)fdt_read_u32(&servos->cells[1 + 2*i + 1])) * (invert ? -1 : 1);
                                 set_servo(pca, index, (int32_t) s[i], servo_scale);
                             }
-                            logd_printf(LOG_DEBUG, "positioned to %d, %d, %d\n", s[0]/10, s[1]/10, s[2]/10);
-                        }
+                            //logd_printf(LOG_DEBUG, "positioned to %d, %d, %d\n", s[0]/10, s[1]/10, s[2]/10);
+                        }*/
 
                     }
 
                 }else{
-                    logd_printfs(LOG_INFO, "node 'inverse-kinematics' missing\n");
+                    //logd_printfs(LOG_INFO, "node 'inverse-kinematics' missing\n");
                 }
 
                 /*Exit node*/
-                logd_pop();
+                //logd_pop();
                 l = fdt_node_end(fdt, l);
             }
         }
     }
-    logd_pop();
-    logd_printfs(LOG_INFO, "ready!\n");
+    //logd_pop();
+    //logd_printfs(LOG_INFO, "ready!\n");
 
     while(!targets || !legs);
 
@@ -573,13 +492,15 @@ int main(void)
     while(true){
 
         /* Calculate delta-t */
-        now = dev_systick_get();
+        now = 0;// dev_systick_get();//TODO: replace with board_get_systick()
         dt = now - last;
 
         /* Raise from floor slowly */
         if(tboot < 5000)
             tboot += dt;
-        body.offset.members[2] = tboot/100.0f;
+
+        //TODO: translate above floor
+        //body.offset.members[2] = tboot/100.0f;
 
 
         if(active_gait(&gait)){
@@ -601,7 +522,7 @@ int main(void)
             vec4 tmp = VEC4(0, 0, 0, 1), target;
 
             /* Subtract body offset */
-            vec_sub((vecx *) &l, (vecx *) &body.offset, (vecx*) &tmp);
+            //vec_sub((vecx *) &l, (vecx *) &body.offset, (vecx*) &tmp);
             target = tmp;
 
             /* TODO:  and translate with gait */
@@ -615,8 +536,8 @@ int main(void)
                 vec_addl((vecx *) &c, (vecx *) &targets[i].initial);
 
                 c.members[2] += 100.0f*sinf(3.14f*t/2500.0f) * (targets[i].raise ? 1 : 0);
-                mat4_rotz(targets[i].iangle + (targets[i].tangle - targets[i].iangle)*t/2500.0f, &gait_mat);
-                mat4_trans(&c, &gait_mat);
+                mat4_make_rotz(targets[i].iangle + (targets[i].tangle - targets[i].iangle)*t/2500.0f, &gait_mat);
+                mat4_make_translate(&c, &gait_mat);
                 vecmat_mul((matxx*)&gait_mat, (vecx*)&target, (vecx*)&tmp);
                 target = tmp;
             }
@@ -632,7 +553,7 @@ int main(void)
 
         if(recv_complete){
             //logd_printf(LOG_INFO, "> %s\n", recv_buf);
-            scpi_execute(&scpi, (char*)recv_buf, NULL);
+            //scpi_execute(&scpi, (char*)recv_buf, NULL);
             usart_send_blocking(USART2, '\n');
             recv_complete = 0;
         }

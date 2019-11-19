@@ -1,3 +1,7 @@
 [submodule "libopencm3"]
 	path = libopencm3
 	url = https://github.com/libopencm3/libopencm3.git
+
+[submodule "scpi/scpi-parser"]
+	path = scpi/scpi-parser
+	url = https://github.com/j123b567/scpi-parser.git

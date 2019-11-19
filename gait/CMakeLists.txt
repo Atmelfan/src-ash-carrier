@@ -1,6 +1,11 @@
-add_library(gait gait.c gait.h gait_dts_const.h)
+cmake_minimum_required(VERSION 3.7)
 
-##Add gait FDT blob...
-include(../fdt/fdt.cmake)
-#add_fdt_target(gait_dts gaits.dts)
-target_link_libraries(gait)
+# Create library
+set(GAIT_SOURCE
+        ${CMAKE_CURRENT_SOURCE_DIR}/gait.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/gait.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/gait_dts_const.h
+        )
+set(GAIT_SOURCE ${GAIT_SOURCE} PARENT_SCOPE)
+add_library(gait ${GAIT_SOURCE})
+

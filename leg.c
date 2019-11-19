@@ -14,7 +14,7 @@ bool leg_from_node(leg_t* l, fdt_header_t* fdt, fdt_token* node){
     /* Read transform matrix */
     fdt_token* matrix = fdt_node_get_prop(fdt, node, "transform", false);
     if(matrix == NULL){
-        logd_printfs(LOG_ERROR, "no transform");
+        //logd_printfs(LOG_ERROR, "no transform");
         return false;
     }
     l->transform = MAT4_ZERO();
@@ -59,10 +59,10 @@ bool leg_from_node(leg_t* l, fdt_header_t* fdt, fdt_token* node){
 
         /*  */
         uint32_t servo_phandle = fdt_read_u32(&servos->cells[0]);
-        pwm_dev_t* pca = (pwm_dev_t *) dev_find_device_phandle(servo_phandle);
+        //pwm_dev_t* pca = (pwm_dev_t *) dev_find_device_phandle(servo_phandle);
 
         /*  */
-        if(pca && length && fdt_prop_len(fdt, length) == 3*sizeof(uint32_t) ){
+        if(length && fdt_prop_len(fdt, length) == 3*sizeof(uint32_t) ){
             for (int i = 0; i < 3; ++i) {
 
                 /* Leg lengths */
@@ -86,13 +86,13 @@ bool leg_from_node(leg_t* l, fdt_header_t* fdt, fdt_token* node){
                 }
             }
 
-            l->pwm_dev = pca;
+            //l->pwm_dev = pca;
         }else{
-            logd_printfs(LOG_ERROR, "no pwm driver or malformed ik data");
+            //logd_printfs(LOG_ERROR, "no pwm driver or malformed ik data");
             return false;
         }
     }else{
-        logd_printfs(LOG_ERROR, "no ik node");
+        //logd_printfs(LOG_ERROR, "no ik node");
         return false;
     }
 
@@ -134,7 +134,8 @@ void leg_set_servo(pwm_dev_t *pca, uint32_t index, int32_t degres_10, uint32_t s
 
     uint32_t counts = (us*period)/20000;
 
-    set_pwm(pca, (uint16_t) index, 0, counts);
+    //Replace
+    //set_pwm(pca, (uint16_t) index, 0, counts);
 }
 
 void leg_move_to_vec(leg_t* l, vec4* vec){

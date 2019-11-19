@@ -6,9 +6,8 @@
 #define SRC_CARRIER_LEG_H
 
 #include <stdbool.h>
-#include "math/linalg.h"
+#include "linalg/linalg.h"
 #include "fdt/dtb_parser.h"
-#include "ik/ik_3dof.h"
 #include "platforms/pwm.h"
 
 typedef enum {

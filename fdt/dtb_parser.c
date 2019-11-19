@@ -84,7 +84,7 @@ fdt_token* fdt_token_next(fdt_header_t* fdt, fdt_token* token){
             return NULL;
 
         default:
-            printf("#FDT ERROR: Found unknown token %04X", (unsigned int)fdt_read_u32(&token->token));
+            //printf("#FDT ERROR: Found unknown token %04X", (unsigned int)fdt_read_u32(&token->token));
             return NULL;
     }
     return (fdt_token*)((void*)token + sizeof(uint32_t)  + len);
