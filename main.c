@@ -10,9 +10,6 @@
 #include "linalg/linalg.h"
 #include "fdt/dtb_parser.h"
 #include "leg.h"
-#include "platforms/board.h"
-#include "platforms/i2c.h"
-#include "platforms/log.h"
 #include "body.h"
 #include "linalg/linalg_util.h"
 #include "gait/gait.h"
@@ -230,13 +227,13 @@ scpi_status_t body_rot_set(const scpi_context_t *context, char *args){
 
         switch (i){
             case 1:
-                mat4_rotz((float) ((a / 180.0f) * M_PI), &temp);//YAW
+                mat4_make_rotz((float) ((a / 180.0f) * M_PI), &temp);//YAW
                 break;
             case 2:
-                mat4_rotx((float) ((a / 180.0f) * M_PI), &temp);//PITCH
+                mat4_make_rotx((float) ((a / 180.0f) * M_PI), &temp);//PITCH
                 break;
             case 3:
-                mat4_roty((float) ((a / 180.0f) * M_PI), &temp);//ROLL
+                mat4_make_roty((float) ((a / 180.0f) * M_PI), &temp);//ROLL
                 break;
             default:
                 break;
@@ -330,33 +327,6 @@ scpi_status_t scpi_gait_stop(const scpi_context_t *context, char *args){
     return SCPI_SUCCESS;
 }
 
-/**
- * Set a servo to the requested angle
- * @param pca, pwm device
- * @param index, servo channel
- * @param degres_10, degrees scaled by 10
- * @param scale, number of us to turn 90 degrees
- */
-void set_servo(pwm_dev_t *pca, uint32_t index, int32_t degres_10, uint32_t scale) {
-    uint32_t period = ((pwm_driver_t*)pca->dev.drv)->period;
-
-    uint32_t us = (uint32_t) (1500 + (int32_t)(degres_10*scale)/900);
-
-    if(us < 250)
-        us = 250;
-    else if(us > 2750)
-        us = 2750;
-
-    uint32_t counts = (us*period)/20000;
-
-    //TODO: Call board_set_servo()
-    //set_pwm(pca, (uint16_t) index, 0, counts);
-}
-
-
-
-
-
 int main(void)
 {
 
@@ -421,13 +391,13 @@ int main(void)
                     continue;
                 }
 
-                if(legs[reg].pwm_dev){
+                /*if(legs[reg].pwm_dev){
                     //leg_move_to_vec(&ik_appendages[reg], &ik_appendages[reg].home_position);
                     //vec4 s = legs[reg].home_position;
                     //logd_printf(LOG_DEBUG, "home at %f, %f, %f\n", s.members[0], s.members[1], s.members[2]);
                 }else{
                     //logd_printfs(LOG_WARNING, "no servo driver\n");
-                }
+                }*/
 
                 /* Read ik parameters */
                 //TODO: Remove this shit

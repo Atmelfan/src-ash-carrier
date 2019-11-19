@@ -8,7 +8,6 @@
 #include <stdbool.h>
 #include "linalg/linalg.h"
 #include "fdt/dtb_parser.h"
-#include "platforms/pwm.h"
 
 typedef enum {
     LEG_AT_HOME = 0,
@@ -33,7 +32,7 @@ typedef struct {
     uint32_t scale;
 
     /* PWM device used to control the servos */
-    pwm_dev_t* pwm_dev;
+    //pwm_dev_t* pwm_dev;
 
     /* Status of leg movement */
     leg_status status;

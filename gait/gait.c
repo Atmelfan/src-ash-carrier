@@ -5,7 +5,6 @@
 #include "gait.h"
 #include "../leg.h"
 #include "../fdt/dtb_parser.h"
-#include "../platforms/log.h"
 #include "../fdt_mathutil.h"
 
 bool gait_update_step(gait_step *step, fdt_header_t *fdt, float t) {

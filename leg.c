@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <math.h>
 #include "leg.h"
-#include "platforms/log.h"
 
 bool leg_from_node(leg_t* l, fdt_header_t* fdt, fdt_token* node){
     if(fdt_token_get_type(node) != FDT_BEGIN_NODE)
@@ -106,7 +105,7 @@ void leg_init(leg_t *l, uint32_t scale) {
     l->home_position = VEC4_ZERO();
     l->transform = MAT4_ZERO();
     l->scale = scale;
-    l->pwm_dev = NULL;
+    //l->pwm_dev = NULL;
     for (int j = 0; j < 3; ++j) {
         l->servo_offsets_100[j] = 0;
     }
@@ -122,8 +121,8 @@ void leg_init(leg_t *l, uint32_t scale) {
  * @param degres_10, degrees scaled by 10
  * @param scale, number of us to turn 90 degrees
  */
-void leg_set_servo(pwm_dev_t *pca, uint32_t index, int32_t degres_10, uint32_t scale) {
-    uint32_t period = ((pwm_driver_t*)pca->dev.drv)->period;
+void leg_set_servo(uint32_t index, int32_t degres_10, uint32_t scale) {
+    uint32_t period = 0;
 
     uint32_t us = (uint32_t) (1500 + (int32_t)(degres_10*scale)/900);
 
@@ -149,8 +148,6 @@ void leg_move_to_vec(leg_t* l, vec4* vec){
 }
 
 void leg_move_to_local(leg_t* l, vec4* loc){
-    if(!l->pwm_dev)
-        return;
 
     float x = loc->members[0], y = loc->members[1], z = loc->members[2];
 
@@ -172,8 +169,8 @@ void leg_move_to_local(leg_t* l, vec4* loc){
     float S2 = (1800.0f/(float)M_PI)*(acosf(s2));
 
     /*  */
-    leg_set_servo(l->pwm_dev, l->servo_index[0], ( (int32_t)S0 - l->servo_offsets_100[0])  * (l->invert[0] ? -1 : 1), l->scale);
-    leg_set_servo(l->pwm_dev, l->servo_index[1], ((int32_t)-S1 - l->servo_offsets_100[1])  * (l->invert[1] ? -1 : 1), l->scale);
-    leg_set_servo(l->pwm_dev, l->servo_index[2], ( (int32_t)S2 - l->servo_offsets_100[2])  * (l->invert[2] ? -1 : 1), l->scale);
+    leg_set_servo(l->servo_index[0], ( (int32_t)S0 - l->servo_offsets_100[0])  * (l->invert[0] ? -1 : 1), l->scale);
+    leg_set_servo(l->servo_index[1], ((int32_t)-S1 - l->servo_offsets_100[1])  * (l->invert[1] ? -1 : 1), l->scale);
+    leg_set_servo(l->servo_index[2], ( (int32_t)S2 - l->servo_offsets_100[2])  * (l->invert[2] ? -1 : 1), l->scale);
 }
 

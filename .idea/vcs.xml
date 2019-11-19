@@ -3,5 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/libopencm3" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/scpi/scpi-parser" vcs="Git" />
   </component>
 </project>
