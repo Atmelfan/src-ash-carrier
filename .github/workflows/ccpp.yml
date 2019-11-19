@@ -20,3 +20,4 @@ jobs:
       working-directory: build
     - name: make
       run: make
+      working-directory: build
