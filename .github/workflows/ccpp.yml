@@ -13,6 +13,9 @@ jobs:
         submodules: true
     - name: setup
       run: sudo apt remove gcc-arm-none-eabi && sudo apt-add-repository ppa:team-gcc-arm-embedded/ppa && sudo apt update && sudo apt-get install gcc-arm-embedded device-tree-compiler
+    - name: libopencm3
+      run: make
+      working-directory: libopencm3
     - name: mkdir
       run: mkdir build 
     - name: configure
