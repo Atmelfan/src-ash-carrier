@@ -1,0 +1,20 @@
+name: C/C++ CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: setup
+      run: apt remove gcc-arm-none-eabi && apt-add-repository ppa:team-gcc-arm-embedded/ppa && apt updaten && apt-install gcc-arm-embedded device-tree-compiler
+    - name: mkdir
+      run: mkdir build 
+    - name: configure
+      run: cmake ../
+      working-directory: build
+    - name: make
+      run: make
