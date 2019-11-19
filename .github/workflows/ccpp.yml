@@ -9,6 +9,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v1
+      with:
+        submodules: true
     - name: setup
       run: sudo apt remove gcc-arm-none-eabi && sudo apt-add-repository ppa:team-gcc-arm-embedded/ppa && sudo apt update && sudo apt-get install gcc-arm-embedded device-tree-compiler
     - name: mkdir
